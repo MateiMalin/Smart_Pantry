@@ -26,6 +26,9 @@ PantryApi/obj/
 out/
 publish/
 
+# ca sa nu pun adresa ip pe github
+PantryMobile/constants/Config.ts
+
 # --- [ Node / React Native / Expo ] ---
 node_modules/
 .expo/
