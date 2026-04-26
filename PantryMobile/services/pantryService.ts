@@ -15,7 +15,6 @@ export const pantryService = {
       const data = await response.json();
       console.log("[getItems] Raw response:", data);
 
-      // API returns wrapped response: { value: [...], Count: X }
       const items = Array.isArray(data) ? data : data?.value || [];
       console.log("[getItems] Extracted items:", items);
       return items;
@@ -71,7 +70,6 @@ export const pantryService = {
       const responseData = await response.json();
       console.log("[addItem] Raw response:", responseData);
 
-      // Handle both wrapped and unwrapped responses
       const createdItem = responseData?.value || responseData;
       console.log("[addItem] Extracted item:", createdItem);
       return createdItem;
