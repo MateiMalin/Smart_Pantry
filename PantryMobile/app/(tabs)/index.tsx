@@ -15,8 +15,8 @@ import {
 } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import { BlurView } from "expo-blur"; // Futuristic glass effect
-import { LinearGradient } from "expo-linear-gradient"; // Vibrant background
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 import { pantryService } from "../../services/pantryService";
 import { showConfirm } from "../../utils/crossPlatformAlert";
 
@@ -50,6 +50,8 @@ export default function PantryListScreen() {
   const [newItemQty, setNewItemQty] = useState("");
   const [newItemUnit, setNewItemUnit] = useState("Grams");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  // --- Edit mode state ---
+  const [editingItemId, setEditingItemId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchPantryData();
@@ -80,7 +82,7 @@ export default function PantryListScreen() {
     try {
       await pantryService.deleteItem(id);
     } catch (error) {
-      setItems(previousItems); // Rollback on failure
+      setItems(previousItems);
       showAlert("Error", "Delete failed. Please try again.");
     }
   };
@@ -136,13 +138,70 @@ export default function PantryListScreen() {
     }
   };
 
+  const handleSaveItem = async () => {
+    Keyboard.dismiss();
+    const errors = validate();
+    if (Object.keys(errors).length > 0) {
+      if (Platform.OS === "web") {
+        setFieldErrors(errors);
+      } else {
+        const firstError = errors.name ?? errors.quantity ?? "Invalid input.";
+        Alert.alert("Validation", firstError);
+      }
+      return;
+    }
+    setFieldErrors({});
+    if (editingItemId !== null) {
+      // --- Update existing item ---
+      try {
+        const updatedItem = await pantryService.putItem(editingItemId, {
+          name: newItemName.trim(),
+          quantity: parseFloat(newItemQty),
+          unit: newItemUnit.trim() || "Grams",
+        });
+        setItems((prev) =>
+          prev.map((item) => (item.id === editingItemId ? updatedItem : item)),
+        );
+        handleCloseModal();
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Could not update item.";
+        showAlert("Error", errorMessage);
+      }
+    } else {
+      // --- Add new item ---
+      try {
+        const createdItem = await pantryService.addItem({
+          name: newItemName.trim(),
+          quantity: parseFloat(newItemQty),
+          unit: newItemUnit.trim() || "Grams",
+        });
+        setItems((prev) => [...prev, createdItem]);
+        handleCloseModal();
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Could not add item.";
+        showAlert("Error", errorMessage);
+      }
+    }
+  };
+
   const handleCloseModal = () => {
     setModalVisible(false);
     setNewItemName("");
     setNewItemQty("");
     setNewItemUnit("Grams");
     setFieldErrors({});
+    setEditingItemId(null); 
     Keyboard.dismiss();
+  };
+
+  const handleOpenEditModal = (item: PantryItem) => {
+    setEditingItemId(item.id);
+    setNewItemName(item.name);
+    setNewItemQty(item.quantity.toString());
+    setNewItemUnit(item.unit);
+    setModalVisible(true);
   };
 
   if (loading) {
@@ -166,7 +225,10 @@ export default function PantryListScreen() {
           <Text style={styles.title}>Smart Pantry</Text>
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => setModalVisible(true)}
+            onPress={() => {
+              setEditingItemId(null); // Add mode
+              setModalVisible(true);
+            }}
           >
             <Text style={styles.addButtonText}>+ Add</Text>
           </TouchableOpacity>
@@ -189,14 +251,26 @@ export default function PantryListScreen() {
                     <Text style={styles.unitLabel}>{item.unit}</Text>
                   </View>
                 </View>
-
-                {/* RIGHT SECTION: DELETE ONLY */}
-                <TouchableOpacity
-                  onPress={() => confirmDelete(item.id, item.name)}
-                  style={styles.deleteCircle}
-                >
-                  <Text style={styles.deleteIcon}>✕</Text>
-                </TouchableOpacity>
+                {/* RIGHT SECTION: DELETE & EDIT */}
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <TouchableOpacity
+                    onPress={() => handleOpenEditModal(item)}
+                    style={[
+                      styles.deleteCircle,
+                      { marginRight: 8, backgroundColor: "#fbbf24" },
+                    ]}
+                  >
+                    <Text style={[styles.deleteIcon, { color: "#fff" }]}>
+                      ✎
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => confirmDelete(item.id, item.name)}
+                    style={styles.deleteCircle}
+                  >
+                    <Text style={styles.deleteIcon}>✕</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </BlurView>
           )}
@@ -216,8 +290,9 @@ export default function PantryListScreen() {
               <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
               >
-                <Text style={styles.modalTitle}>New Entry</Text>
-
+                <Text style={styles.modalTitle}>
+                  {editingItemId !== null ? "Edit Entry" : "New Entry"}
+                </Text>
                 <TextInput
                   style={[
                     styles.glassInput,
@@ -235,7 +310,6 @@ export default function PantryListScreen() {
                 {fieldErrors.name && (
                   <Text style={styles.errorText}>{fieldErrors.name}</Text>
                 )}
-
                 <TextInput
                   style={[
                     styles.glassInput,
@@ -257,22 +331,22 @@ export default function PantryListScreen() {
                 {fieldErrors.quantity && (
                   <Text style={styles.errorText}>{fieldErrors.quantity}</Text>
                 )}
-
                 <TextInput
                   style={styles.glassInput}
                   placeholder="Unit (e.g. Grams)"
                   placeholderTextColor="#94a3b8"
                   value={newItemUnit}
                   onChangeText={setNewItemUnit}
-                  onSubmitEditing={handleAddItem}
+                  onSubmitEditing={handleSaveItem}
                 />
-
                 <View style={styles.buttonRow}>
                   <TouchableOpacity
                     style={styles.saveBtn}
-                    onPress={handleAddItem}
+                    onPress={handleSaveItem}
                   >
-                    <Text style={styles.btnText}>Save</Text>
+                    <Text style={styles.btnText}>
+                      {editingItemId !== null ? "Update" : "Save"}
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.cancelBtn}
@@ -390,7 +464,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    // 2. Darker overlay (0.85 instead of 0.7) to kill background noise
     backgroundColor: "rgba(0,0,0,0.85)",
   },
   glassModal: {
@@ -400,12 +473,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.2)",
     overflow: "hidden",
-    // 3. Adding a solid base color helps the blur feel "thicker"
     backgroundColor: "rgba(30, 41, 59, 0.5)",
   },
   modalTitle: {
-    fontSize: 26, // Slightly larger
-    fontWeight: "800", // Extra bold
+    fontSize: 26, 
+    fontWeight: "800", 
     color: "#fff",
     marginBottom: 25,
     textAlign: "center",

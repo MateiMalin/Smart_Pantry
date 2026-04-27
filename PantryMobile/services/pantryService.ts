@@ -32,6 +32,61 @@ export const pantryService = {
     return true;
   },
 
+  async putItem(
+    id: number,
+    newItem: { name: string; quantity: number; unit: string },
+  ) {
+    const url = `${API_URL}/pantry/${id}`;
+    try {
+      // Include id in the body to match backend expectations
+      const response = await fetch(url, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id, ...newItem }),
+      });
+
+      console.log("[putItem] Response status:", response.status);
+
+      if (!response.ok) {
+        const bodyText = await response.text().catch(() => "");
+        console.log("[putItem] Error response body:", bodyText);
+        let errorMessage = `Failed to update item (${response.status})`;
+
+        if (bodyText) {
+          try {
+            const errorData = JSON.parse(bodyText);
+            if (errorData?.message) {
+              errorMessage = errorData.message;
+            } else if (errorData?.title) {
+              errorMessage = errorData.title;
+            }
+          } catch {
+            errorMessage = bodyText;
+          }
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      // If backend returns no content, return the updated item manually
+      if (response.status === 204) {
+        return { id, ...newItem };
+      }
+
+      const responseData = await response.json();
+      console.log("[putItem] Raw response:", responseData);
+
+      const updatedItem = responseData?.value || responseData;
+      console.log("[putItem] Extracted item:", updatedItem);
+      return updatedItem;
+    } catch (error) {
+      console.error("[putItem] Error:", error);
+      throw error;
+    }
+  },
+
   async addItem(newItem: { name: string; quantity: number; unit: string }) {
     const url = `${API_URL}/pantry`;
     console.log("[addItem] POST to:", url, "with body:", newItem);
