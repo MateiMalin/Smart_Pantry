@@ -3,12 +3,15 @@ using Microsoft.AspNetCore.Mvc;
 using PantryApi.Models;
 using PantryApi.Data;
 using Microsoft.AspNetCore.JsonPatch;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PantryApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")] // controller e placeholder, inlocuieste
     //cu numele din clasa PantryController
+    [Authorize]
+    //if globally, all the routes will need auth
     public class PantryController : ControllerBase
     {
         private readonly ApiDbContext _context;

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PantryApi.Models;
+using SmartPantry.Models;
 
 namespace PantryApi.Data;
 
@@ -16,6 +17,8 @@ public class ApiDbContext : DbContext
         Console.WriteLine("Database created succesfully");
     }
 
-    public DbSet<PantryItem> PantryItems {set; get;}
+    //DbSet means a database Table
+    public DbSet<PantryItem> PantryItems { set; get; }
+    public DbSet<User> Users { set; get; }
 
 }

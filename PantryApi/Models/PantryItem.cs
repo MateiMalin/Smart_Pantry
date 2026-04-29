@@ -10,8 +10,9 @@ namespace PantryApi.Models
         public int Id { set; get; }
         public string Name { set; get; } = string.Empty;
         public DateTime? ExpiryDate { set; get; }
-        public string Category {set; get;} = string.Empty;
-        public float Quantity {set; get;}
-        public string Unit {set; get;}="pcs";
+        public string Category { set; get; } = string.Empty;
+        public float Quantity { set; get; }
+        public string Unit { set; get; } = "pcs";
+        public int UserId { get; set; }
     }
 }

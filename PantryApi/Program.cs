@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using PantryApi.Data;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,6 +28,28 @@ builder.Services.AddOpenApi();
 builder.Services.AddControllers()
     .AddNewtonsoftJson();
 
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(
+    options =>
+    {
+        options.TokenValidationParameters =
+        new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey =
+            new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes
+                (
+                    builder.Configuration["AppSettings:Token"]!
+                )
+            ),
+            ValidateIssuer = false,
+            ValidateAudience = false
+        };
+    }
+);
+
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 // Apply CORS policy
@@ -39,5 +64,8 @@ if (app.Environment.IsDevelopment())
 
 // Register controller routes.
 app.MapControllers();
+//middleware for authentification
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.Run();
