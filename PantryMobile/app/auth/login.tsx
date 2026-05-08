@@ -14,13 +14,15 @@ import { Ionicons } from "@expo/vector-icons";
 
 export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   const handleLogin = async (values: any) => {
+    setLoginError(null);
     try {
       await authService.login(values.email, values.password);
       router.replace("/main/pantry");
     } catch (error) {
-      alert("Invalid email or password");
+      setLoginError("Invalid email or password. Please try again.");
     }
   };
 
@@ -82,6 +84,8 @@ export default function LoginScreen() {
             {touched.password && errors.password && (
               <Text style={styles.error}>{errors.password}</Text>
             )}
+
+            {loginError && <Text style={styles.error}>{loginError}</Text>}
 
             {/* LOGIN BUTTON */}
             <TouchableOpacity

@@ -1,8 +1,7 @@
 import { useEffect } from "react";
-import { View, ActivityIndicator, StyleSheet, Platform } from "react-native";
+import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter, useRootNavigationState } from "expo-router";
-import * as SecureStore from "expo-secure-store";
-//for storing auth data safely on the devide
+import { tokenService } from "../services/tokenService";
 
 export default function Index() {
   const router = useRouter();
@@ -12,13 +11,8 @@ export default function Index() {
     if (!rootNavigationState?.key) return;
 
     const checkUserStatus = async () => {
-      if (Platform.OS === "web") {
-        console.warn("SecureStore is not available on web");
-        router.replace("/auth/login");
-        return;
-      }
       try {
-        const token = await SecureStore.getItemAsync("userToken");
+        const token = await tokenService.getToken();
         if (token) {
           router.replace("/main/pantry");
         } else {

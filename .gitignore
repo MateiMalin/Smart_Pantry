@@ -53,3 +53,5 @@ ios/
 # If you run a local DB and it generates files
 *.db
 *.sqlite
+
+ideas.txt

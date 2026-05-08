@@ -62,10 +62,11 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-// Register controller routes.
-app.MapControllers();
-//middleware for authentification
+// Middleware for authentication and authorization. This must come BEFORE MapControllers.
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Register controller routes.
+app.MapControllers();
 
 app.Run();
