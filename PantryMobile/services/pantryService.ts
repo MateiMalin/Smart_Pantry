@@ -17,7 +17,8 @@ export const pantryService = {
   },
 
   async putItem(id: number, item: PantryItemData) {
-    await api.put(`/pantry/${id}`, { id, ...item });
+    const response = await api.put(`/pantry/${id}`, item);
+    return response.data;
   },
 
   async addItem(newItem: PantryItemData) {

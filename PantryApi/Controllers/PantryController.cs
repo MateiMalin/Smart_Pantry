@@ -8,14 +8,12 @@ using Microsoft.AspNetCore.Authorization;
 namespace PantryApi.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")] // controller e placeholder, inlocuieste
-    //cu numele din clasa PantryController
+    [Route("api/[controller]")]
     [Authorize]
-    //if globally, all the routes will need auth
     public class PantryController : ControllerBase
     {
         private readonly ApiDbContext _context;
-        //in _context o sa fie database session
+
         public PantryController(ApiDbContext context)
         {
             _context = context;
@@ -33,9 +31,7 @@ namespace PantryApi.Controllers
             var item = await _context.PantryItems.FindAsync(id);
 
             if (item == null)
-            {
                 return NotFound();
-            }
 
             return item;
         }
@@ -44,13 +40,9 @@ namespace PantryApi.Controllers
         public async Task<ActionResult<PantryItem>> CreateItem([FromBody] PantryItem newItem)
         {
             if (string.IsNullOrWhiteSpace(newItem.Name))
-            {
                 return BadRequest("Item name cannot be empty");
-            }
 
             _context.PantryItems.Add(newItem);
-            //add puts data locally
-            //save changes pushes the changes
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetItem), new { id = newItem.Id }, newItem);
@@ -60,9 +52,7 @@ namespace PantryApi.Controllers
         public async Task<IActionResult> UpdateItem(int id, [FromBody] PantryItem item)
         {
             if (id != item.Id)
-            {
                 return BadRequest("ID mismatch");
-            }
 
             _context.Entry(item).State = EntityState.Modified;
 
@@ -73,43 +63,35 @@ namespace PantryApi.Controllers
             catch (DbUpdateConcurrencyException)
             {
                 if (!ItemExists(id))
-                {
                     return NotFound();
-                }
                 else
-                {
                     throw;
-                }
             }
+
             return NoContent();
         }
 
-        [HttpPatch]
+        // Fix: was [HttpPatch] with no route parameter — PATCH /api/pantry/5
+        // returned 404 because the route didn't match anything.
+        [HttpPatch("{id}")]
         public async Task<IActionResult> PatchItem(int id, [FromBody] JsonPatchDocument<PantryItem> patchDoc)
         {
             if (patchDoc == null)
-            {
                 return BadRequest();
-            }
 
             var item = await _context.PantryItems.FindAsync(id);
 
             if (item == null)
-            {
                 return NotFound();
-            }
 
             patchDoc.ApplyTo(item, ModelState);
 
             if (!TryValidateModel(item))
-            {
                 return ValidationProblem(ModelState);
-            }
 
             await _context.SaveChangesAsync();
 
             return NoContent();
-
         }
 
         [HttpDelete("{id}")]
@@ -118,9 +100,7 @@ namespace PantryApi.Controllers
             var item = await _context.PantryItems.FindAsync(id);
 
             if (item == null)
-            {
                 return NotFound();
-            }
 
             _context.PantryItems.Remove(item);
             await _context.SaveChangesAsync();
@@ -132,6 +112,5 @@ namespace PantryApi.Controllers
         {
             return _context.PantryItems.Any(e => e.Id == id);
         }
-
     }
 }
