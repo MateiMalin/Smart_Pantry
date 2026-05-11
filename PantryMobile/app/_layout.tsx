@@ -1,35 +1,19 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Stack } from "expo-router";
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
+// The root layout must be a Stack so that auth routes (/auth/login, /auth/register)
+// and app routes (/main/pantry) can all be navigated to freely.
+// A Tabs layout only renders the screens defined as Tab.Screen children —
+// any router.replace() to an unlisted route silently fails.
+export default function RootLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
-    </Tabs>
+    <Stack screenOptions={{ headerShown: false }}>
+      {/* index.tsx — splash/auth check */}
+      <Stack.Screen name="index" />
+      {/* Auth screens */}
+      <Stack.Screen name="auth/login" />
+      <Stack.Screen name="auth/register" />
+      {/* Main app screens */}
+      <Stack.Screen name="main/pantry" />
+    </Stack>
   );
 }

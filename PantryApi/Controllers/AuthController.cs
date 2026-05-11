@@ -34,7 +34,8 @@ namespace SmartPantry.Controllers
         //IAction result - > ca sa pot avea un response mai complex
         public async Task<IActionResult> Register(UserDTO request)
         {
-            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+            var normalizedEmail = request.Email.ToLowerInvariant();
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
             //translates into selet top(1) * from users where email = @email
             if (existingUser != null)
                 return BadRequest("User already exists");
@@ -43,7 +44,7 @@ namespace SmartPantry.Controllers
 
             var user = new User
             {
-                Email = request.Email,
+                Email = normalizedEmail,
                 PasswordHash = passwordHash
             };
 
@@ -56,7 +57,8 @@ namespace SmartPantry.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login(UserDTO request)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+            var normalizedEmail = request.Email.ToLowerInvariant();
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
             if (user == null)
                 return BadRequest("Invalid credentials");
 
@@ -69,7 +71,7 @@ namespace SmartPantry.Controllers
 
             return Ok(new
             {
-                message =  "Login succesfull",
+                message = "Login succesfull",
                 token = token,
                 userId = user.Id,
                 email = user.Email
@@ -85,33 +87,27 @@ namespace SmartPantry.Controllers
                 new Claim(ClaimTypes.Email, user.Email)
             };
 
-            //generam o cheie bazata pe signature din appsettings
-            //we convert it to bytes because computers work best with them
-            // var key = new SymmetricSecurityKey(
-            //     Encoding.UTF8.GetBytes(_configuration["appsettings:Token"]!)
-            // //GetBytes crashes the app if it receives null
-            // // ! is a "trust me" operator
-            // );
-
-            var secret_token = _configuration.GetSection("AppSettings:Token").Value;
-
-            if (string.IsNullOrEmpty(secret_token))
+            // 1. Retrieve the secret key from appsettings.json
+            var secretToken = _configuration["AppSettings:Token"];
+            if (string.IsNullOrEmpty(secretToken))
             {
-                throw new Exception("Secret token is missing from appsettings.json!");
+                throw new InvalidOperationException("Secret token is not configured in appsettings.json.");
             }
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret_token));
+            // 2. Create the symmetric security key
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretToken));
 
-            //per claims and data, it creates using the key a signature that will only allow
-            //that specific person to login 
+            // 3. Create the signing credentials using a secure algorithm
             var creds = new SigningCredentials(
                 key,
                 SecurityAlgorithms.HmacSha256Signature
             );
 
+            // 4. Create the token with claims, expiration, and credentials
             var token = new JwtSecurityToken(
                 claims: claims,
-                expires: DateTime.Now.AddDays(1),
+                // Use UtcNow to avoid timezone issues
+                expires: DateTime.UtcNow.AddDays(1),
                 signingCredentials: creds
             );
 
